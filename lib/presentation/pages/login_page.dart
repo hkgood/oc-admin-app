@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
+import 'email_verification_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -40,13 +41,63 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = false);
 
     if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? '登录失败'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      final errorMsg = authProvider.errorMessage ?? '';
+      // Check if it's a verification issue
+      if (errorMsg.contains('verified') || errorMsg.toLowerCase().contains('verification')) {
+        _showVerificationDialog();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg.isNotEmpty ? errorMsg : '登录失败'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     }
+  }
+
+  void _showVerificationDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('邮箱未验证'),
+        content: const Text('你的邮箱尚未验证。请查收验证邮件并点击验证链接。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => EmailVerificationPage(
+                    email: _emailController.text.trim(),
+                    onVerified: () {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                  ),
+                ),
+              );
+            },
+            child: const Text('查看邮箱'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final authProvider = context.read<AuthProvider>();
+              await authProvider.requestPasswordReset(_emailController.text.trim());
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('验证邮件已重新发送')),
+              );
+            },
+            child: const Text('重新发送'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -66,34 +117,22 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Icon(
-                        Icons.pets,
-                        size: 48,
-                        color: colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
+                    // WatchClaw text logo
                     Text(
-                      'OpenClaw',
-                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
+                      'WatchClaw',
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                            fontWeight: FontWeight.w200,
+                            letterSpacing: 4,
                             color: colorScheme.primary,
                           ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '管理控制台',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      'OpenClaw 管理客户端',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
+                            letterSpacing: 1,
                           ),
                       textAlign: TextAlign.center,
                     ),
@@ -141,7 +180,7 @@ class _LoginPageState extends State<LoginPage> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     FilledButton(
                       onPressed: _isLoading ? null : _login,
@@ -153,7 +192,7 @@ class _LoginPageState extends State<LoginPage> {
                             )
                           : const Text('登录'),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     Align(
                       alignment: Alignment.centerRight,
