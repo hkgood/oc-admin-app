@@ -23,7 +23,7 @@ class PocketBaseDataSource {
   Future<UserModel> login(String email, String password) async {
     final authData = await _pb.collection('relay_users').authWithPassword(email, password);
     await _secureStorage.write(key: _tokenKey, value: authData.token);
-    await _secureStorage.write(key: _userKey, value: authData.record!.toJson());
+    await _secureStorage.write(key: _userKey, value: jsonEncode(authData.record!.toJson()));
     await _secureStorage.write(key: _userIdKey, value: authData.record!.id);
     return UserModel.fromJson(authData.record!.toJson());
   }
@@ -84,7 +84,7 @@ class PocketBaseDataSource {
     // Auto-login after registration
     final authData = await _pb.collection('relay_users').authWithPassword(email, password);
     await _secureStorage.write(key: _tokenKey, value: authData.token);
-    await _secureStorage.write(key: _userKey, value: authData.record!.toJson());
+    await _secureStorage.write(key: _userKey, value: jsonEncode(authData.record!.toJson()));
     return UserModel.fromJson(record.toJson());
   }
 
