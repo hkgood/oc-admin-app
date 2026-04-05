@@ -26,4 +26,22 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> isLoggedIn() {
     return _dataSource.isLoggedIn();
   }
+
+  @override
+  Future<User> register({
+    required String name,
+    required String email,
+    required String password,
+  }) {
+    return _dataSource.register(
+      name: name,
+      email: email,
+      password: password,
+    );
+  }
+
+  @override
+  Future<void> requestPasswordReset(String email) {
+    return _dataSource.requestPasswordReset(email);
+  }
 }
