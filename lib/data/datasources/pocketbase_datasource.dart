@@ -4,7 +4,7 @@ import '../models/user_model.dart';
 import '../models/instance_model.dart';
 
 class PocketBaseDataSource {
-  static const _pbUrl = 'https://pb.osglab.com/_/';
+  static const _pbUrl = 'https://pb.osglab.com';
   static const _tokenKey = 'pb_auth_token';
   static const _userKey = 'pb_auth_model';
 
@@ -17,9 +17,9 @@ class PocketBaseDataSource {
 
   PocketBase get client => _pb;
 
-  // Auth
+  // Auth - use relay_users collection
   Future<UserModel> login(String email, String password) async {
-    final authData = await _pb.collection('users').authWithPassword(email, password);
+    final authData = await _pb.collection('relay_users').authWithPassword(email, password);
     await _secureStorage.write(key: _tokenKey, value: authData.token);
     await _secureStorage.write(key: _userKey, value: authData.record!.id);
     return UserModel.fromJson(authData.record!.toJson());
@@ -35,9 +35,11 @@ class PocketBaseDataSource {
     final token = await _secureStorage.read(key: _tokenKey);
     if (token == null) return false;
     try {
-      // Save token to authStore and verify by refreshing
-      final model = await _pb.collection('users').authRefresh();
-      return model != null;
+      _pb.authStore.loadFromToken(token);
+      if (!_pb.authStore.isValid) return false;
+      // Verify token is still valid
+      await _pb.collection('relay_users').authRefresh();
+      return true;
     } catch (_) {
       return false;
     }
@@ -46,47 +48,86 @@ class PocketBaseDataSource {
   Future<UserModel?> getCurrentUser() async {
     if (!_pb.authStore.isValid) return null;
     try {
-      final record = await _pb.collection('users').authRefresh();
-      return UserModel.fromJson(record!.toJson());
+      final record = await _pb.collection('relay_users').authRefresh();
+      return record != null ? UserModel.fromJson(record.toJson()) : null;
     } catch (_) {
       return null;
     }
   }
 
-  // Instances
+  // Register new user
+  Future<UserModel> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final record = await _pb.collection('relay_users').create(
+      body: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'passwordConfirm': password,
+        'emailVisibility': false,
+      },
+    );
+    // Auto-login after registration
+    final authData = await _pb.collection('relay_users').authWithPassword(email, password);
+    await _secureStorage.write(key: _tokenKey, value: authData.token);
+    await _secureStorage.write(key: _userKey, value: authData.record!.id);
+    return UserModel.fromJson(record.toJson());
+  }
+
+  // Request password reset email
+  Future<void> requestPasswordReset(String email) async {
+    await _pb.collection('relay_users').requestPasswordReset(email);
+  }
+
+  // Instances - use relay_users as the owner
   Future<List<InstanceModel>> getInstances() async {
     final userId = await _secureStorage.read(key: _userKey);
     if (userId == null) return [];
 
-    final records = await _pb.collection('openclaw_instances').getFullList(
-      filter: 'user = "$userId"',
+    final records = await _pb.collection('oc_instances').getFullList(
+      filter: 'user_id = "' + userId + '"',
       sort: '-created',
     );
     return records.map((r) => InstanceModel.fromJson(r.toJson())).toList();
   }
 
+  // Get instance status from relay_status collection
+  Future<Map<String, dynamic>?> getInstanceStatusFromPB(String instanceId) async {
+    try {
+      final records = await _pb.collection('relay_status').getFullList(
+        filter: 'instance_id = "' + instanceId + '"',
+        sort: '-lastUpdate',
+      );
+      if (records.isNotEmpty) {
+        return records.first.toJson();
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<InstanceModel> addInstance(String name, String instanceId, String instanceToken) async {
     final userId = await _secureStorage.read(key: _userKey);
-    final record = await _pb.collection('openclaw_instances').create(
+    if (userId == null) throw Exception('Not logged in');
+
+    final record = await _pb.collection('oc_instances').create(
       body: {
         'name': name,
         'instance_id': instanceId,
         'instance_token': instanceToken,
-        'user': userId,
-        'is_online': false,
-        'cpu_usage': 0.0,
-        'memory_usage': 0.0,
-        'uptime_seconds': 0,
+        'user_id': userId,
       },
     );
     return InstanceModel.fromJson(record.toJson());
   }
 
   Future<void> removeInstance(String instanceDbId) async {
-    await _pb.collection('openclaw_instances').delete(instanceDbId);
+    await _pb.collection('oc_instances').delete(instanceDbId);
   }
 
   Future<void> updateInstanceStatus(String instanceDbId, Map<String, dynamic> data) async {
-    await _pb.collection('openclaw_instances').update(instanceDbId, body: data);
+    await _pb.collection('oc_instances').update(instanceDbId, body: data);
   }
 }
