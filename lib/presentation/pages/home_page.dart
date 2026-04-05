@@ -349,13 +349,8 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 32),
 
             // Logout button
-            ListTile(
-              leading: const Icon(Icons.logout_outlined),
-              title: const Text('退出登录'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              onTap: () {
+            OutlinedButton(
+              onPressed: () {
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
@@ -367,6 +362,9 @@ class _HomePageState extends State<HomePage> {
                         child: const Text('取消'),
                       ),
                       FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                        ),
                         onPressed: () {
                           Navigator.pop(ctx);
                           context.read<AuthProvider>().logout();
@@ -377,6 +375,33 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               },
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                side: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(128)),
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(60),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.logout_outlined,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '退出登录',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         );
