@@ -14,11 +14,11 @@ import 'presentation/pages/home_page.dart';
 import 'presentation/theme/app_theme.dart';
 
 void main() {
-  runApp(const OcAdminApp());
+  runApp(const WatchClawApp());
 }
 
-class OcAdminApp extends StatelessWidget {
-  const OcAdminApp({super.key});
+class WatchClawApp extends StatelessWidget {
+  const WatchClawApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class OcAdminApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'OpenClaw Admin',
+        title: 'WatchClaw',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
@@ -61,16 +61,28 @@ class _AuthWrapper extends StatelessWidget {
         switch (authProvider.status) {
           case AuthStatus.initial:
           case AuthStatus.loading:
-            return const Scaffold(
+            return Scaffold(
               body: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.pets, size: 64, color: Colors.deepPurple),
-                    SizedBox(height: 24),
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('加载中...'),
+                    Text(
+                      'WatchClaw',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w300,
+                            letterSpacing: 4,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                    ),
+                    const SizedBox(height: 24),
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Loading...',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
                   ],
                 ),
               ),
