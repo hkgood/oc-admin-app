@@ -57,6 +57,7 @@ class _AddInstancePageState extends State<AddInstancePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('添加实例'),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -72,33 +73,21 @@ class _AddInstancePageState extends State<AddInstancePage> {
                   color: Theme.of(context).colorScheme.primaryContainer.withAlpha(50),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.pets,
-                      size: 40,
-                      color: Theme.of(context).colorScheme.primary,
+                    Text(
+                      '绑定 WatchClaw 实例',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '绑定 OpenClaw 实例',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '在 WatchClaw 设备上运行 watch-claw 插件，获取 Instance ID 和 Token 后填入下方',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '在 OpenClaw 所在设备上运行 watch-claw 插件获取 Instance ID 和 Token',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.outline,
-                                ),
-                          ),
-                        ],
-                      ),
                     ),
                   ],
                 ),
@@ -109,6 +98,7 @@ class _AddInstancePageState extends State<AddInstancePage> {
               TextFormField(
                 controller: _nameController,
                 textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(
                   labelText: '实例名称',
                   hintText: '例如：我的服务器',
@@ -159,13 +149,25 @@ class _AddInstancePageState extends State<AddInstancePage> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                    ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
