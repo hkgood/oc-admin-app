@@ -42,7 +42,6 @@ class _LoginPageState extends State<LoginPage> {
 
     if (!success) {
       final errorMsg = authProvider.errorMessage ?? '';
-      // Check if it's a verification issue
       if (errorMsg.contains('verified') || errorMsg.toLowerCase().contains('verification')) {
         _showVerificationDialog();
       } else {
@@ -108,21 +107,23 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
+              constraints: const BoxConstraints(maxWidth: 380),
               child: Form(
                 key: _formKey,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SizedBox(height: 32),
+
                     // WatchClaw text logo
                     Text(
                       'WatchClaw',
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
                             fontWeight: FontWeight.w200,
-                            letterSpacing: 4,
+                            letterSpacing: 6,
                             color: colorScheme.primary,
                           ),
                       textAlign: TextAlign.center,
@@ -132,20 +133,35 @@ class _LoginPageState extends State<LoginPage> {
                       'OpenClaw 管理客户端',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
-                            letterSpacing: 1,
+                            letterSpacing: 0.5,
                           ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 56),
 
+                    // Email field
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '邮箱',
                         hintText: 'your@email.com',
-                        prefixIcon: Icon(Icons.email_outlined),
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        filled: true,
+                        fillColor: colorScheme.surfaceContainerHighest.withAlpha(128),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+                        ),
                       ),
                       validator: (v) {
                         if (v == null || v.isEmpty) return '请输入邮箱';
@@ -155,6 +171,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Password field
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
@@ -173,6 +190,20 @@ class _LoginPageState extends State<LoginPage> {
                             setState(() => _obscurePassword = !_obscurePassword);
                           },
                         ),
+                        filled: true,
+                        fillColor: colorScheme.surfaceContainerHighest.withAlpha(128),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+                        ),
                       ),
                       validator: (v) {
                         if (v == null || v.isEmpty) return '请输入密码';
@@ -180,20 +211,9 @@ class _LoginPageState extends State<LoginPage> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24),
-
-                    FilledButton(
-                      onPressed: _isLoading ? null : _login,
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('登录'),
-                    ),
                     const SizedBox(height: 12),
 
+                    // Forgot password - right aligned
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -204,11 +224,70 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           );
                         },
-                        child: const Text('忘记密码？'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: colorScheme.onSurfaceVariant,
+                        ),
+                        child: Text(
+                          '忘记密码？',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 14,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 24),
 
+                    // Primary login button
+                    FilledButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        backgroundColor: colorScheme.primary,
+                      ),
+                      child: _isLoading
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colorScheme.onPrimary,
+                              ),
+                            )
+                          : Text(
+                              '登录',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onPrimary,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Divider
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            '或',
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Register button - same style as login but muted
                     OutlinedButton(
                       onPressed: () {
                         Navigator.of(context).push(
@@ -217,7 +296,23 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         );
                       },
-                      child: const Text('没有账号？注册'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: BorderSide(color: colorScheme.outline.withAlpha(128)),
+                        backgroundColor: colorScheme.surfaceContainerHighest.withAlpha(60),
+                        foregroundColor: colorScheme.onSurface,
+                      ),
+                      child: Text(
+                        '没有账号？注册',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
                     ),
                   ],
                 ),
