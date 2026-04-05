@@ -62,14 +62,79 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _user = await _repository.register(
+        name: name,
+        email: email,
+        password: password,
+      );
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = _parseRegisterError(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> requestPasswordReset(String email) async {
+    _errorMessage = null;
+    try {
+      await _repository.requestPasswordReset(email);
+      return true;
+    } catch (e) {
+      _errorMessage = _parseResetError(e);
+      return false;
+    }
+  }
+
   String _parseError(dynamic e) {
     final msg = e.toString().toLowerCase();
-    if (msg.contains('invalid') || msg.contains('wrong')) {
+    if (msg.contains('invalid') || msg.contains('wrong') || msg.contains('credentials')) {
       return '邮箱或密码错误';
     }
     if (msg.contains('network') || msg.contains('connection')) {
       return '网络连接失败，请检查网络';
     }
     return '登录失败，请重试';
+  }
+
+  String _parseRegisterError(dynamic e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('already') || msg.contains('exists') || msg.contains('duplicate')) {
+      return '该邮箱已注册';
+    }
+    if (msg.contains('email')) {
+      return '邮箱格式不正确';
+    }
+    if (msg.contains('password')) {
+      return '密码格式不正确';
+    }
+    if (msg.contains('network') || msg.contains('connection')) {
+      return '网络连接失败，请检查网络';
+    }
+    return '注册失败，请重试';
+  }
+
+  String _parseResetError(dynamic e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('not found') || msg.contains('not exist') || msg.contains('invalid email')) {
+      return '该邮箱未注册';
+    }
+    if (msg.contains('network') || msg.contains('connection')) {
+      return '网络连接失败，请检查网络';
+    }
+    return '请求失败，请重试';
   }
 }
