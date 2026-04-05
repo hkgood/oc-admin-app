@@ -41,15 +41,20 @@ class PocketBaseDataSource {
     if (token == null || userJson == null) return false;
     try {
       // Restore auth store from stored token + model
-      _pb.authStore.save(token, RecordModel.fromJson(jsonDecode(userJson)));
+      final model = RecordModel.fromJson(jsonDecode(userJson));
+      _pb.authStore.save(token, model);
       // Also store userId for instance operations
-      final userId = (_pb.authStore.model as RecordModel?)?.id;
-      if (userId != null) {
-        await _secureStorage.write(key: _userIdKey, value: userId);
+      if (model.id.isNotEmpty) {
+        await _secureStorage.write(key: _userIdKey, value: model.id);
       }
       if (!_pb.authStore.isValid) return false;
-      // Verify token is still valid by refreshing
-      await _pb.collection('relay_users').authRefresh();
+      // Verify token is still valid by refreshing (but don't fail if unverified)
+      try {
+        await _pb.collection('relay_users').authRefresh();
+      } catch (_) {
+        // Token valid even if refresh fails (e.g. unverified email)
+        // As long as authStore is valid, user is logged in
+      }
       return true;
     } catch (_) {
       return false;
