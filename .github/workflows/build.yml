@@ -15,11 +15,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Clone Flutter SDK (China mirror)
+      - name: Install Flutter SDK
         run: |
-          cd $HOME
-          git clone --depth 1 --branch stable https://gitee.com/mirrors/Flutter.git FlutterSDK
-          echo "$HOME/FlutterSDK/bin" >> $GITHUB_PATH
+          git clone --depth 1 --branch 3.24.0 https://github.com/flutter/flutter.git --depth 1 /opt/flutter
+          echo "/opt/flutter/bin" >> $GITHUB_PATH
 
       - name: Flutter version
         run: flutter --version
@@ -45,11 +44,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Clone Flutter SDK (China mirror)
+      - name: Install Flutter SDK
         run: |
-          cd $HOME
-          git clone --depth 1 --branch stable https://gitee.com/mirrors/Flutter.git FlutterSDK
-          echo "$HOME/FlutterSDK/bin" >> $GITHUB_PATH
+          git clone --depth 1 --branch 3.24.0 https://github.com/flutter/flutter.git --depth 1 /opt/flutter
+          echo "/opt/flutter/bin" >> $GITHUB_PATH
 
       - name: Flutter version
         run: flutter --version
