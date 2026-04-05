@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type (patch/minor/major/auto)'
+        required: false
+        default: 'auto'
 
 jobs:
   build:
@@ -22,6 +27,14 @@ jobs:
 
       - name: Flutter version
         run: flutter --version
+
+      - name: Auto bump version
+        run: |
+          chmod +x scripts/auto_version.py
+          python3 scripts/auto_version.py ${{ github.event.inputs.bump_type || 'auto' }}
+
+      - name: Show new version
+        run: grep "^version:" pubspec.yaml
 
       - name: Install dependencies
         run: |
@@ -51,6 +64,14 @@ jobs:
 
       - name: Flutter version
         run: flutter --version
+
+      - name: Auto bump version
+        run: |
+          chmod +x scripts/auto_version.py
+          python3 scripts/auto_version.py ${{ github.event.inputs.bump_type || 'auto' }}
+
+      - name: Show new version
+        run: grep "^version:" pubspec.yaml
 
       - name: Install dependencies
         run: |
