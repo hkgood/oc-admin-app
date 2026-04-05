@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
@@ -7,6 +8,7 @@ class PocketBaseDataSource {
   static const _pbUrl = 'https://pb.osglab.com';
   static const _tokenKey = 'pb_auth_token';
   static const _userKey = 'pb_auth_model';
+  static const _userIdKey = 'pb_auth_user_id';
 
   late final PocketBase _pb;
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -21,7 +23,8 @@ class PocketBaseDataSource {
   Future<UserModel> login(String email, String password) async {
     final authData = await _pb.collection('relay_users').authWithPassword(email, password);
     await _secureStorage.write(key: _tokenKey, value: authData.token);
-    await _secureStorage.write(key: _userKey, value: authData.record!.id);
+    await _secureStorage.write(key: _userKey, value: authData.record!.toJson());
+    await _secureStorage.write(key: _userIdKey, value: authData.record!.id);
     return UserModel.fromJson(authData.record!.toJson());
   }
 
@@ -29,15 +32,23 @@ class PocketBaseDataSource {
     _pb.authStore.clear();
     await _secureStorage.delete(key: _tokenKey);
     await _secureStorage.delete(key: _userKey);
+    await _secureStorage.delete(key: _userIdKey);
   }
 
   Future<bool> isLoggedIn() async {
     final token = await _secureStorage.read(key: _tokenKey);
-    if (token == null) return false;
+    final userJson = await _secureStorage.read(key: _userKey);
+    if (token == null || userJson == null) return false;
     try {
-      _pb.authStore.loadFromToken(token);
+      // Restore auth store from stored token + model
+      _pb.authStore.save(token, RecordModel.fromJson(jsonDecode(userJson)));
+      // Also store userId for instance operations
+      final userId = (_pb.authStore.model as RecordModel?)?.id;
+      if (userId != null) {
+        await _secureStorage.write(key: _userIdKey, value: userId);
+      }
       if (!_pb.authStore.isValid) return false;
-      // Verify token is still valid
+      // Verify token is still valid by refreshing
       await _pb.collection('relay_users').authRefresh();
       return true;
     } catch (_) {
@@ -73,7 +84,7 @@ class PocketBaseDataSource {
     // Auto-login after registration
     final authData = await _pb.collection('relay_users').authWithPassword(email, password);
     await _secureStorage.write(key: _tokenKey, value: authData.token);
-    await _secureStorage.write(key: _userKey, value: authData.record!.id);
+    await _secureStorage.write(key: _userKey, value: authData.record!.toJson());
     return UserModel.fromJson(record.toJson());
   }
 
@@ -84,7 +95,7 @@ class PocketBaseDataSource {
 
   // Instances - use relay_users as the owner
   Future<List<InstanceModel>> getInstances() async {
-    final userId = await _secureStorage.read(key: _userKey);
+    final userId = await _secureStorage.read(key: _userIdKey);
     if (userId == null) return [];
 
     final records = await _pb.collection('oc_instances').getFullList(
@@ -109,7 +120,7 @@ class PocketBaseDataSource {
   }
 
   Future<InstanceModel> addInstance(String name, String instanceId, String instanceToken) async {
-    final userId = await _secureStorage.read(key: _userKey);
+    final userId = await _secureStorage.read(key: _userIdKey);
     if (userId == null) throw Exception('Not logged in');
 
     final record = await _pb.collection('oc_instances').create(
