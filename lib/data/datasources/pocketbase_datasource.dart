@@ -35,8 +35,9 @@ class PocketBaseDataSource {
     final token = await _secureStorage.read(key: _tokenKey);
     if (token == null) return false;
     try {
-      _pb.authStore.loadFromToken(token);
-      return _pb.authStore.isValid;
+      // Save token to authStore and verify by refreshing
+      final model = await _pb.collection('users').authRefresh();
+      return model != null;
     } catch (_) {
       return false;
     }
