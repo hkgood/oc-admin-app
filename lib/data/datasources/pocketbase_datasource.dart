@@ -65,7 +65,7 @@ class PocketBaseDataSource {
     if (!_pb.authStore.isValid) return null;
     try {
       final record = await _pb.collection('relay_users').authRefresh();
-      return record != null ? UserModel.fromJson(record.toJson()) : null;
+      return record != null && record.record != null ? UserModel.fromJson(record.record!.toJson()) : null;
     } catch (_) {
       return null;
     }
@@ -113,8 +113,8 @@ class PocketBaseDataSource {
     try {
       final record = await _pb.collection('relay_users').authRefresh();
       if (record != null) {
-        final user = UserModel.fromJson(record.toJson());
-        await _secureStorage.write(key: _userKey, value: jsonEncode(record.toJson()));
+        final user = UserModel.fromJson(record.record!.toJson());
+        await _secureStorage.write(key: _userKey, value: jsonEncode(record.record!.toJson()));
         return user;
       }
     } catch (_) {}
@@ -189,8 +189,8 @@ class PocketBaseDataSource {
   Future<String?> getRelayToken() async {
     try {
       final record = await _pb.collection('relay_users').authRefresh();
-      if (record != null) {
-        return record.get<String>('relay_token');
+      if (record != null && record.record != null) {
+        return record.record!.get<String>('relay_token');
       }
     } catch (_) {}
     return null;

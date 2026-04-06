@@ -8,6 +8,7 @@ class UserModel extends User {
     super.avatarUrl,
     required super.createdAt,
     super.verified,
+    super.relayToken,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
