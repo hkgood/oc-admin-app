@@ -123,6 +123,50 @@ class AuthProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  // 获取relay_token
+  Future<String?> getRelayToken() async {
+    try {
+      final token = await _repository.getRelayToken();
+      if (token != null && _user != null) {
+        // Update user with relay_token
+        _user = User(
+          id: _user!.id,
+          email: _user!.email,
+          name: _user!.name,
+          avatarUrl: _user!.avatarUrl,
+          createdAt: _user!.createdAt,
+          verified: _user!.verified,
+          relayToken: token,
+        );
+        notifyListeners();
+      }
+      return token;
+    } catch (_) {}
+    return null;
+  }
+
+  // 重新生成relay_token
+  Future<String?> regenerateRelayToken() async {
+    if (_user == null) return null;
+    try {
+      final newToken = await _repository.regenerateRelayToken(_user!.id, _user!.email);
+      if (newToken != null && _user != null) {
+        _user = User(
+          id: _user!.id,
+          email: _user!.email,
+          name: _user!.name,
+          avatarUrl: _user!.avatarUrl,
+          createdAt: _user!.createdAt,
+          verified: _user!.verified,
+          relayToken: newToken,
+        );
+        notifyListeners();
+      }
+      return newToken;
+    } catch (_) {}
+    return null;
+  }
+
   String _parseError(dynamic e) {
     final msg = e.toString().toLowerCase();
     if (msg.contains('invalid') || msg.contains('wrong') || msg.contains('credentials')) {

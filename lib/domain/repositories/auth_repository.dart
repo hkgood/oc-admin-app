@@ -13,4 +13,6 @@ abstract class AuthRepository {
   Future<void> requestPasswordReset(String email);
   Future<void> resendVerificationEmail(String email);
   Future<User?> refreshUserVerification();
+  Future<String?> getRelayToken();
+  Future<String?> regenerateRelayToken(String userId, String email);
 }

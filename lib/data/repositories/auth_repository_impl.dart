@@ -54,4 +54,14 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<User?> refreshUserVerification() {
     return _dataSource.refreshUserVerification();
   }
+
+  @override
+  Future<String?> getRelayToken() {
+    return _dataSource.getRelayToken();
+  }
+
+  @override
+  Future<String?> regenerateRelayToken(String userId, String email) {
+    return _dataSource.regenerateRelayToken(userId, email);
+  }
 }

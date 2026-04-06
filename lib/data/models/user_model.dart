@@ -20,6 +20,7 @@ class UserModel extends User {
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
       verified: json['verified'] ?? false,
+      relayToken: json['relay_token'],
     );
   }
 

@@ -169,4 +169,30 @@ class PocketBaseDataSource {
   Future<void> updateInstanceStatus(String instanceDbId, Map<String, dynamic> data) async {
     await _pb.collection('oc_instances').update(instanceDbId, body: data);
   }
+
+  // Regenerate relay_token for the current user via pebble-relay API
+  Future<String?> regenerateRelayToken(String userId, String email) async {
+    try {
+      // Call pebble-relay to regenerate token
+      final resp = await _pb.send('/api/v1/user/token', method: 'POST', body: {
+        'email': email,
+        'regenerate': true,
+      });
+      if (resp != null && resp['ok'] == true) {
+        return resp['user_token'];
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  // Get relay_token from PocketBase user's own record
+  Future<String?> getRelayToken() async {
+    try {
+      final record = await _pb.collection('relay_users').authRefresh();
+      if (record != null) {
+        return record.get<String>('relay_token');
+      }
+    } catch (_) {}
+    return null;
+  }
 }

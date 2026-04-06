@@ -5,6 +5,7 @@ class User {
   final String? avatarUrl;
   final DateTime createdAt;
   final bool verified;
+  final String? relayToken;
 
   User({
     required this.id,
@@ -13,5 +14,6 @@ class User {
     this.avatarUrl,
     required this.createdAt,
     this.verified = false,
+    this.relayToken,
   });
 }
