@@ -35,7 +35,7 @@ class InstanceRepositoryImpl implements InstanceRepository {
       name: status['name'] ?? instanceId,
       instanceId: instanceId,
       instanceToken: '',
-      isOnline: status['online'] ?? false,
+      isOnline: status['ok'] ?? false,
       cpuUsage: (status['cpu'] ?? 0).toDouble(),
       memoryUsage: (status['memory'] ?? 0).toDouble(),
       uptimeSeconds: status['uptime'] ?? 0,
