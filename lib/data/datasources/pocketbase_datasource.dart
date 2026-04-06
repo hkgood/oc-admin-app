@@ -90,6 +90,10 @@ class PocketBaseDataSource {
     final authData = await _pb.collection('relay_users').authWithPassword(email, password);
     await _secureStorage.write(key: _tokenKey, value: authData.token);
     await _secureStorage.write(key: _userKey, value: jsonEncode(authData.record!.toJson()));
+
+    // 发送验证邮件
+    await _pb.collection('relay_users').requestVerification(email);
+
     return UserModel.fromJson(record.toJson());
   }
 
