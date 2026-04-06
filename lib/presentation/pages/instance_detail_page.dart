@@ -68,7 +68,13 @@ class _InstanceDetailPageState extends State<InstanceDetailPage>
                 SliverAppBar(
                   expandedHeight: 200,
                   pinned: true,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  surfaceTintColor: Colors.transparent,
+                  iconTheme: IconThemeData(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                   flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: true,
                     title: Text(
                       instance.name,
                       style: const TextStyle(fontSize: 16),
@@ -132,7 +138,7 @@ class _InstanceHeader extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 60, 20, 60),
+          padding: const EdgeInsets.fromLTRB(20, 48, 20, 48),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

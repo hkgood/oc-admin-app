@@ -243,50 +243,79 @@ class _HomePageState extends State<HomePage> {
         }
 
         if (provider.instances.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.dns_outlined,
-                  size: 56,
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  '暂无绑定实例',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                title: const Text('实例'),
+                centerTitle: true,
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                surfaceTintColor: Colors.transparent,
+              ),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.dns_outlined,
+                        size: 56,
                         color: Theme.of(context).colorScheme.outline,
                       ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '点击右下角 + 添加实例',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.outline,
+                      const SizedBox(height: 16),
+                      Text(
+                        '暂无绑定实例',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '点击右下角 + 添加实例',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         }
 
         return RefreshIndicator(
           onRefresh: provider.loadInstances,
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: provider.instances.length,
-            itemBuilder: (context, index) {
-              final instance = provider.instances[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: InstanceCard(
-                  instance: instance,
-                  onTap: () => _openInstanceDetail(instance.instanceId),
-                  onDelete: () => _confirmDelete(instance),
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                title: const Text('实例'),
+                centerTitle: true,
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                surfaceTintColor: Colors.transparent,
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final instance = provider.instances[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: InstanceCard(
+                          instance: instance,
+                          onTap: () => _openInstanceDetail(instance.instanceId),
+                          onDelete: () => _confirmDelete(instance),
+                        ),
+                      );
+                    },
+                    childCount: provider.instances.length,
+                  ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
         );
       },
@@ -296,148 +325,158 @@ class _HomePageState extends State<HomePage> {
   Widget _buildSettingsTab() {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const SizedBox(height: 16),
-            // User info card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    child: Text(
-                      (authProvider.user?.name?.substring(0, 1).toUpperCase() ??
-                          authProvider.user?.email.substring(0, 1).toUpperCase() ??
-                          'U'),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
+        return CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              title: const Text('设置'),
+              centerTitle: true,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              surfaceTintColor: Colors.transparent,
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const SizedBox(height: 16),
+                  // User info card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(
-                          authProvider.user?.name ?? '用户',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          child: Text(
+                            (authProvider.user?.name?.substring(0, 1).toUpperCase() ??
+                                authProvider.user?.email.substring(0, 1).toUpperCase() ?? 'U'),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          authProvider.user?.email ?? '',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                authProvider.user?.name ?? '用户',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
+                              const SizedBox(height: 2),
+                              Text(
+                                authProvider.user?.email ?? '',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Theme mode switcher
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.brightness_6,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      '界面模式',
-                      style: Theme.of(context).textTheme.bodyLarge,
+                  const SizedBox(height: 32),
+                  // Theme mode switcher
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-                  SegmentedButton<ThemeMode>(
-                    segments: const [
-                      ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto)),
-                      ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode)),
-                      ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode)),
-                    ],
-                    selected: {context.watch<ThemeProvider>().themeMode},
-                    onSelectionChanged: (Set<ThemeMode> selection) {
-                      context.read<ThemeProvider>().setThemeMode(selection.first);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Logout button
-            OutlinedButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('退出登录'),
-                    content: const Text('确定要退出登录吗？'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('取消'),
-                      ),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.error,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.brightness_6,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          context.read<AuthProvider>().logout();
-                        },
-                        child: const Text('退出'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                side: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(128)),
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(60),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.logout_outlined,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '退出登录',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onSurface,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '界面模式',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                        SegmentedButton<ThemeMode>(
+                          segments: const [
+                            ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto)),
+                            ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode)),
+                            ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode)),
+                          ],
+                          selected: {context.watch<ThemeProvider>().themeMode},
+                          onSelectionChanged: (Set<ThemeMode> selection) {
+                            context.read<ThemeProvider>().setThemeMode(selection.first);
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                  const SizedBox(height: 32),
+                  // Logout button
+                  OutlinedButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('退出登录'),
+                          content: const Text('确定要退出登录吗？'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('取消'),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.error,
+                              ),
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                context.read<AuthProvider>().logout();
+                              },
+                              child: const Text('退出'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      side: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(128)),
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(60),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.logout_outlined,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '退出登录',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
               ),
             ),
           ],
@@ -445,6 +484,7 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
 
   void _openInstanceDetail(String instanceId) {
     Navigator.push(
