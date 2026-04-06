@@ -120,8 +120,8 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: oc-admin-app-release.apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: oc-admin-app-${{ needs.build.outputs.version }}.apk
+          path: build/app/outputs/flutter-apk/oc-admin-app-${{ needs.build.outputs.version }}.apk
 
       - name: Upload to GitHub Release
         env:
