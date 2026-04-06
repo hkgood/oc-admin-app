@@ -117,3 +117,13 @@ jobs:
         with:
           name: oc-admin-app-release.apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//')
+          TAG_NAME="v${VERSION%%+*}"
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          echo "Uploading ${APK_PATH} to release ${TAG_NAME}"
+          gh release upload "${TAG_NAME}" "${APK_PATH}" --repo hkgood/oc-admin-app || echo "Release upload failed - will be available as artifact"
