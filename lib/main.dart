@@ -10,6 +10,7 @@ import 'domain/repositories/auth_repository.dart';
 import 'domain/repositories/instance_repository.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/instance_provider.dart';
+import 'presentation/providers/theme_provider.dart';
 import 'presentation/pages/login_page.dart';
 import 'presentation/pages/home_page.dart';
 import 'presentation/theme/app_theme.dart';
@@ -46,14 +47,19 @@ class WatchClawApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => InstanceProvider(instanceRepository),
         ),
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+        ),
       ],
-      child: MaterialApp(
-        title: 'WatchClaw',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const _AuthWrapper(),
+      child: Builder(
+        builder: (context) => MaterialApp(
+          title: 'WatchClaw',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: context.watch<ThemeProvider>().themeMode,
+          home: const _AuthWrapper(),
+        ),
       ),
     );
   }

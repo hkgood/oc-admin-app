@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'OpenClaw 管理客户端',
+                      'WatchClaw 管理客户端',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                             letterSpacing: 0.5,

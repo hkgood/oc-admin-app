@@ -123,7 +123,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//')
-          TAG_NAME="v${VERSION%%+*}"
-          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          # 从pubspec.yaml提取主版本号用于文件名（去掉+build部分）
+          MAIN_VERSION=$(echo "$VERSION" | cut -d'+' -f1)
+          TAG_NAME="v${MAIN_VERSION}"
+          # 实际APK文件名由Flutter根据build.gradle的output.outputFileName决定
+          APK_PATH="build/app/outputs/flutter-apk/oc-admin-app-${VERSION}.apk"
           echo "Uploading ${APK_PATH} to release ${TAG_NAME}"
-          gh release upload "${TAG_NAME}" "${APK_PATH}" --repo hkgood/oc-admin-app || echo "Release upload failed - will be available as artifact"
+          gh release upload "${TAG_NAME}" "${APK_PATH}" --repo hkgood/oc-admin-app || echo "Release upload failed"

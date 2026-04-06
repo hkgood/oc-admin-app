@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/instance_provider.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/instance_card.dart';
 import 'add_instance_page.dart';
 import 'instance_detail_page.dart';
@@ -342,6 +343,42 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ],
                     ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Theme mode switcher
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.brightness_6,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '界面模式',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                  SegmentedButton<ThemeMode>(
+                    segments: const [
+                      ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto)),
+                      ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode)),
+                      ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode)),
+                    ],
+                    selected: {context.watch<ThemeProvider>().themeMode},
+                    onSelectionChanged: (Set<ThemeMode> selection) {
+                      context.read<ThemeProvider>().setThemeMode(selection.first);
+                    },
                   ),
                 ],
               ),
