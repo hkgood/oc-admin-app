@@ -94,12 +94,31 @@ class PocketBaseDataSource {
     // 发送验证邮件
     await _pb.collection('relay_users').requestVerification(email);
 
-    return UserModel.fromJson(record.toJson());
+    return UserModel.fromJson(authData.record!.toJson());
   }
 
   // Request password reset email
   Future<void> requestPasswordReset(String email) async {
     await _pb.collection('relay_users').requestPasswordReset(email);
+  }
+
+  // Resend verification email
+  Future<void> resendVerificationEmail(String email) async {
+    await _pb.collection('relay_users').requestVerification(email);
+  }
+
+  // Refresh current user's verification status from server
+  Future<UserModel?> refreshUserVerification() async {
+    if (!_pb.authStore.isValid) return null;
+    try {
+      final record = await _pb.collection('relay_users').authRefresh();
+      if (record != null) {
+        final user = UserModel.fromJson(record.toJson());
+        await _secureStorage.write(key: _userKey, value: jsonEncode(record.toJson()));
+        return user;
+      }
+    } catch (_) {}
+    return null;
   }
 
   // Instances - use relay_users as the owner

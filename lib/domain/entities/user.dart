@@ -4,6 +4,7 @@ class User {
   final String? name;
   final String? avatarUrl;
   final DateTime createdAt;
+  final bool verified;
 
   User({
     required this.id,
@@ -11,5 +12,6 @@ class User {
     this.name,
     this.avatarUrl,
     required this.createdAt,
+    this.verified = false,
   });
 }

@@ -99,6 +99,30 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // 重新发送验证邮件
+  Future<bool> resendVerificationEmail() async {
+    if (_user == null) return false;
+    try {
+      await _repository.resendVerificationEmail(_user!.email);
+      return true;
+    } catch (e) {
+      _errorMessage = '发送失败，请稍后重试';
+      return false;
+    }
+  }
+
+  // 刷新用户验证状态
+  Future<void> refreshUserVerification() async {
+    if (_user == null) return;
+    try {
+      final updated = await _repository.refreshUserVerification();
+      if (updated != null) {
+        _user = updated;
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
   String _parseError(dynamic e) {
     final msg = e.toString().toLowerCase();
     if (msg.contains('invalid') || msg.contains('wrong') || msg.contains('credentials')) {

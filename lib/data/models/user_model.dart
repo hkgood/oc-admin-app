@@ -7,6 +7,7 @@ class UserModel extends User {
     super.name,
     super.avatarUrl,
     required super.createdAt,
+    super.verified,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -18,6 +19,7 @@ class UserModel extends User {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
+      verified: json['verified'] ?? false,
     );
   }
 

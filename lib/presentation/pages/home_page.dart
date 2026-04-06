@@ -340,49 +340,67 @@ class _HomePageState extends State<HomePage> {
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 16),
                   // User info card
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                          child: Text(
-                            (authProvider.user?.name?.substring(0, 1).toUpperCase() ??
-                                authProvider.user?.email.substring(0, 1).toUpperCase() ?? 'U'),
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  GestureDetector(
+                    onTap: authProvider.user?.verified != true
+                        ? () => _showResendVerificationDialog(context, authProvider)
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                            child: Text(
+                              (authProvider.user?.name?.isNotEmpty == true
+                                      ? authProvider.user!.name!.substring(0, 1)
+                                      : (authProvider.user?.email ?? 'U'))
+                                  .toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                authProvider.user?.name ?? '用户',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        authProvider.user?.name?.isNotEmpty == true
+                                            ? authProvider.user!.name!
+                                            : '未设置用户名',
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                authProvider.user?.email ?? '',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            ],
+                                    const SizedBox(width: 8),
+                                    _buildVerificationBadge(context, authProvider.user?.verified ?? false),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  authProvider.user?.email ?? '',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -520,6 +538,73 @@ class _HomePageState extends State<HomePage> {
               }
             },
             child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVerificationBadge(BuildContext context, bool verified) {
+    if (verified) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.green.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          '已验证',
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.green.shade700,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          '未验证',
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.orange.shade700,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showResendVerificationDialog(BuildContext context, AuthProvider authProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('验证邮箱'),
+        content: const Text('您的邮箱尚未验证。点击发送验证邮件到您的邮箱。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await authProvider.resendVerificationEmail();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success ? '验证邮件已发送' : '发送失败，请稍后重试'),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('发送'),
           ),
         ],
       ),
