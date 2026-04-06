@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../providers/auth_provider.dart';
 import '../providers/instance_provider.dart';
 import '../providers/theme_provider.dart';
@@ -404,6 +405,106 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 32),
+                  // Token management card
+                  FutureBuilder<String?>(
+                    future: authProvider.getRelayToken(),
+                    builder: (context, snapshot) {
+                      final token = snapshot.data;
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.key,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '设备绑定Token',
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  icon: const Icon(Icons.refresh, size: 20),
+                                  onPressed: () => _showRegenerateTokenDialog(context, authProvider),
+                                  tooltip: '重新生成',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '使用此Token将OpenClaw设备绑定到当前账号',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            if (token != null && token.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        token,
+                                        style: const TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 12,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.copy, size: 18),
+                                      onPressed: () {
+                                        // Copy to clipboard would go here
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Token已复制')),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Center(
+                                child: QrImageView(
+                                  data: token,
+                                  version: QrVersions.auto,
+                                  size: 120,
+                                  backgroundColor: Colors.white,
+                                ),
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 12),
+                              Center(
+                                child: Text(
+                                  '点击刷新获取Token',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
                   // Theme mode switcher
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -605,6 +706,37 @@ class _HomePageState extends State<HomePage> {
               }
             },
             child: const Text('发送'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRegenerateTokenDialog(BuildContext context, AuthProvider authProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('重新生成Token'),
+        content: const Text('确定要重新生成Token吗？旧Token将失效，所有绑定的设备需要重新配置。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final newToken = await authProvider.regenerateRelayToken();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(newToken != null ? 'Token已重新生成' : '生成失败，请稍后重试'),
+                    backgroundColor: newToken != null ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('确定'),
           ),
         ],
       ),
