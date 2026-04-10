@@ -3,6 +3,7 @@ import '../../domain/repositories/instance_repository.dart';
 import '../datasources/pocketbase_datasource.dart';
 import '../datasources/relay_api_datasource.dart';
 import '../models/instance_model.dart';
+import '../models/process_info_model.dart';
 
 class InstanceRepositoryImpl implements InstanceRepository {
   final PocketBaseDataSource _pbDataSource;
@@ -12,28 +13,23 @@ class InstanceRepositoryImpl implements InstanceRepository {
 
   @override
   Future<List<Instance>> getInstances() async {
-    final pocketbaseInstances = await _pbDataSource.getInstances();
-
-    // Auto-discover watch-claw registered instances via pebble-relay
+    // First try pebble-relay auto-discovery (correctly uses relayUserId)
     try {
       final relayToken = await _pbDataSource.getRelayToken();
       if (relayToken != null && relayToken.isNotEmpty) {
         final discovered = await _relayDataSource.discoverInstances(relayToken);
         if (discovered.isNotEmpty) {
-          final existingIds = {for (var i in pocketbaseInstances) i.id};
-          for (final d in discovered) {
-            final id = d['id'] as String;
-            if (!existingIds.contains(id)) {
-              pocketbaseInstances.add(InstanceModel.fromDiscoveredJson(d));
-            }
-          }
+          return discovered
+              .map((d) => InstanceModel.fromDiscoveredJson(d))
+              .toList();
         }
       }
     } catch (_) {
-      // Ignore discovery errors - fall back to PocketBase instances only
+      // Fall through to PocketBase query
     }
 
-    return pocketbaseInstances;
+    // Fallback: try PocketBase manual instances
+    return _pbDataSource.getInstances();
   }
 
   @override
@@ -48,34 +44,32 @@ class InstanceRepositoryImpl implements InstanceRepository {
 
   @override
   Future<Instance?> getInstanceStatus(String instanceId) async {
-    final status = await _relayDataSource.getInstanceStatus(instanceId);
-    if (status == null) return null;
+    // Try relay API first (has latest status for all discovered instances)
+    try {
+      final relayToken = await _pbDataSource.getRelayToken();
+      if (relayToken != null && relayToken.isNotEmpty) {
+        final discovered = await _relayDataSource.discoverInstances(relayToken);
+        for (final d in discovered) {
+          if (d['id'] == instanceId) {
+            return InstanceModel.fromDiscoveredJson(d);
+          }
+        }
+      }
+    } catch (_) {
+      // Fall through
+    }
 
-    return InstanceModel(
-      id: '',
-      name: status['name'] ?? instanceId,
-      instanceId: instanceId,
-      instanceToken: '',
-      isOnline: status['ok'] ?? false,
-      cpuUsage: (status['cpu'] ?? 0).toDouble(),
-      memoryUsage: (status['memory'] ?? 0).toDouble(),
-      uptimeSeconds: status['uptime'] ?? 0,
-      lastSeen: DateTime.now(),
-      processes: (status['processes'] as List<dynamic>?)
-              ?.map((p) => ProcessInfoModel.fromJson(p))
-              .toList() ??
-          [],
-      createdAt: DateTime.now(),
-    );
+    // Fallback: PocketBase for manual instances
+    try {
+      final pbInstances = await _pbDataSource.getInstances();
+      return pbInstances.where((i) => i.instanceId == instanceId).firstOrNull;
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Future<List<ProcessInfo>> getInstanceProcesses(String instanceId) {
     return _relayDataSource.getInstanceProcesses(instanceId);
-  }
-
-  @override
-  Future<void> refreshAllInstances() async {
-    // This is handled by the provider with polling
   }
 }
