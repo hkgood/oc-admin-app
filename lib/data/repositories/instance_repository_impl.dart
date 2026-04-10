@@ -3,7 +3,7 @@ import '../../domain/repositories/instance_repository.dart';
 import '../datasources/pocketbase_datasource.dart';
 import '../datasources/relay_api_datasource.dart';
 import '../models/instance_model.dart';
-import '../models/process_info_model.dart';
+
 
 class InstanceRepositoryImpl implements InstanceRepository {
   final PocketBaseDataSource _pbDataSource;

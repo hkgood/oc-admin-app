@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../domain/entities/instance.dart';
 import '../models/instance_model.dart';
 
 class RelayApiDataSource {
@@ -75,7 +76,7 @@ class RelayApiDataSource {
   }
 
   // Get process list from relay for an instance
-  Future<List<ProcessInfoModel>> getInstanceProcesses(String instanceId) async {
+  Future<List<ProcessInfo>> getInstanceProcesses(String instanceId) async {
     try {
       final resp = await http.get(
         Uri.parse('$_relayBase/api/v1/oc/processes/$instanceId'),
