@@ -125,5 +125,6 @@ jobs:
           VERSION="${{ env.VERSION }}"
           MAIN_VERSION=$(echo "$VERSION" | cut -d'+' -f1)
           TAG_NAME="v${MAIN_VERSION}"
-          echo "Uploading ${{ env.APK_PATH }} to release ${TAG_NAME}"
-          gh release upload "${TAG_NAME}" "${{ env.APK_PATH }}" --repo hkgood/oc-admin-app || echo "Release upload failed"
+          APK_PATH="${{ env.APK_PATH }}"
+          # Create release if not exists, then upload
+          gh release create "${TAG_NAME}" "${APK_PATH}" --repo hkgood/oc-admin-app --title "${TAG_NAME}" --notes "Release ${TAG_NAME}" || gh release upload "${TAG_NAME}" "${APK_PATH}" --repo hkgood/oc-admin-app
