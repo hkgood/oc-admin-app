@@ -79,6 +79,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       backgroundColor: Colors.transparent,
       builder: (context) => _AddInstanceBottomSheet(tabController: _fabTabController),
     ).then((_) {
+      context.read<InstanceProvider>().loadInstances();
       _fabTabController.dispose();
     });
   }
@@ -132,7 +133,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         child: _StatCard(
                           title: '离线',
                           value: '$offline',
-                          icon: Icons.cancel_outline,
+                          icon: Icons.cancel,
                           color: Colors.grey,
                         ),
                       ),
@@ -365,58 +366,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                             ),
-                            if (token != null && token.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        token,
-                                        style: const TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontSize: 12,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.copy, size: 18),
-                                      onPressed: () {
-                                        Clipboard.setData(ClipboardData(text: token));
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Token已复制')),
-                                        );
-                                      },
-                                    ),
-                                  ],
+                            if (token != null && token.isNotEmpty)
+                              _buildTokenDisplay(token)
+                            else
+                              const SizedBox(
+                                height: 12,
+                                child: Center(
+                                  child: Text('点击刷新获取Token'),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              Center(
-                                child: QrImageView(
-                                  data: token,
-                                  version: QrVersions.auto,
-                                  size: 120,
-                                  backgroundColor: Colors.white,
-                                ),
-                              ),
-                            ] else [
-                              const SizedBox(height: 12),
-                              Center(
-                                child: Text(
-                                  '点击刷新获取Token',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                      ),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                       );
@@ -596,6 +554,54 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         ),
       );
     }
+  }
+
+  Widget _buildTokenDisplay(String token) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  token,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.copy, size: 18),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: token));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Token已复制')),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: QrImageView(
+            data: token,
+            version: QrVersions.auto,
+            size: 120,
+            backgroundColor: Colors.white,
+          ),
+        ),
+      ],
+    );
   }
 
   void _showResendVerificationDialog(BuildContext context, AuthProvider authProvider) {
@@ -841,12 +847,7 @@ class _ManualAddWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AddInstancePage(
-      onInstanceAdded: () {
-        context.read<InstanceProvider>().loadInstances();
-        onComplete();
-      },
-    );
+    return const AddInstancePage();
   }
 }
 
