@@ -72,4 +72,9 @@ class InstanceRepositoryImpl implements InstanceRepository {
   Future<List<ProcessInfo>> getInstanceProcesses(String instanceId) {
     return _relayDataSource.getInstanceProcesses(instanceId);
   }
+
+  @override
+  Future<void> refreshAllInstances() async {
+    // Handled by provider polling - no-op here
+  }
 }
