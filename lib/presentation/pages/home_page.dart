@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../providers/auth_provider.dart';
@@ -15,16 +16,24 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
+  late TabController _fabTabController;
 
   @override
   void initState() {
     super.initState();
+    _fabTabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InstanceProvider>().loadInstances();
       context.read<InstanceProvider>().startAutoRefresh();
     });
+  }
+
+  @override
+  void dispose() {
+    _fabTabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -33,24 +42,13 @@ class _HomePageState extends State<HomePage> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          _buildDashboard(),
-          _buildInstancesTab(),
+          _buildXiechangTab(),
           _buildSettingsTab(),
         ],
       ),
-      floatingActionButton: _selectedIndex == 1
+      floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
-              onPressed: () async {
-                final result = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AddInstancePage(),
-                  ),
-                );
-                if (result == true && mounted) {
-                  context.read<InstanceProvider>().loadInstances();
-                }
-              },
+              onPressed: () => _showAddInstanceSheet(context),
               child: const Icon(Icons.add),
             )
           : null,
@@ -61,12 +59,7 @@ class _HomePageState extends State<HomePage> {
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
-            label: '概览',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.dns_outlined),
-            selectedIcon: Icon(Icons.dns),
-            label: '实例',
+            label: '虾厂',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
@@ -78,7 +71,19 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildDashboard() {
+  void _showAddInstanceSheet(BuildContext context) {
+    _fabTabController = TabController(length: 2, vsync: this);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _AddInstanceBottomSheet(tabController: _fabTabController),
+    ).then((_) {
+      _fabTabController.dispose();
+    });
+  }
+
+  Widget _buildXiechangTab() {
     return Consumer<InstanceProvider>(
       builder: (context, provider, _) {
         if (provider.status == InstanceStatus.loading) {
@@ -95,7 +100,7 @@ class _HomePageState extends State<HomePage> {
             slivers: [
               SliverAppBar(
                 floating: true,
-                title: const Text('概览'),
+                title: const Text('虾厂'),
                 centerTitle: true,
                 backgroundColor: Theme.of(context).colorScheme.surface,
                 surfaceTintColor: Colors.transparent,
@@ -127,7 +132,7 @@ class _HomePageState extends State<HomePage> {
                         child: _StatCard(
                           title: '离线',
                           value: '$offline',
-                          icon: Icons.cancel_outlined,
+                          icon: Icons.cancel_outline,
                           color: Colors.grey,
                         ),
                       ),
@@ -229,93 +234,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildInstancesTab() {
-    return Consumer<InstanceProvider>(
-      builder: (context, provider, _) {
-        if (provider.status == InstanceStatus.loading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (provider.instances.isEmpty) {
-          return CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                floating: true,
-                title: const Text('实例'),
-                centerTitle: true,
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                surfaceTintColor: Colors.transparent,
-              ),
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.dns_outlined,
-                        size: 56,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '暂无绑定实例',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '点击右下角 + 添加实例',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: provider.loadInstances,
-          child: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                floating: true,
-                title: const Text('实例'),
-                centerTitle: true,
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                surfaceTintColor: Colors.transparent,
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final instance = provider.instances[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: InstanceCard(
-                          instance: instance,
-                          onTap: () => _openInstanceDetail(instance.instanceId),
-                          onDelete: () => _confirmDelete(instance),
-                        ),
-                      );
-                    },
-                    childCount: provider.instances.length,
-                  ),
-                ),
-              ),
             ],
           ),
         );
@@ -470,7 +388,7 @@ class _HomePageState extends State<HomePage> {
                                     IconButton(
                                       icon: const Icon(Icons.copy, size: 18),
                                       onPressed: () {
-                                        // Copy to clipboard would go here
+                                        Clipboard.setData(ClipboardData(text: token));
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(content: Text('Token已复制')),
                                         );
@@ -488,7 +406,7 @@ class _HomePageState extends State<HomePage> {
                                   backgroundColor: Colors.white,
                                 ),
                               ),
-                            ] else ...[
+                            ] else [
                               const SizedBox(height: 12),
                               Center(
                                 child: Text(
@@ -603,7 +521,6 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
-
 
   void _openInstanceDetail(String instanceId) {
     Navigator.push(
@@ -740,6 +657,383 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 添加实例的底部弹窗
+class _AddInstanceBottomSheet extends StatelessWidget {
+  final TabController tabController;
+
+  const _AddInstanceBottomSheet({required this.tabController});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // 拖动条
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.outline.withAlpha(100),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Tab 头
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TabBar(
+              controller: tabController,
+              tabs: const [
+                Tab(text: '🚀 快速添加'),
+                Tab(text: '✏️ 手动添加'),
+              ],
+              labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 15),
+              indicator: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              indicatorSize: TabBarIndicatorSize.label,
+              dividerColor: Colors.transparent,
+            ),
+          ),
+          // Tab 内容
+          Expanded(
+            child: TabBarView(
+              controller: tabController,
+              children: [
+                _QuickAddTab(onComplete: () => Navigator.pop(context)),
+                _ManualAddWrapper(onComplete: () => Navigator.pop(context)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 快速添加 Tab
+class _QuickAddTab extends StatelessWidget {
+  final VoidCallback onComplete;
+
+  const _QuickAddTab({required this.onComplete});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 标题卡片
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer.withAlpha(50),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.flash_on,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '快速添加 WatchClaw 实例',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '按照以下步骤，快速将 OpenClaw 设备绑定到你的账号',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 步骤 1
+          _StepCard(
+            stepNum: '1',
+            title: '安装 WatchClaw 插件',
+            content: '在 OpenClaw 手机 app 中安装 WatchClaw 插件，并按照指引完成基础配置。',
+            icon: Icons.mobile_screen_share,
+          ),
+          const SizedBox(height: 16),
+
+          // 步骤 2
+          _StepCard(
+            stepNum: '2',
+            title: '复制 Token',
+            content: '点击下方按钮，复制你的账号 Token。',
+            icon: Icons.copy,
+            child: _TokenCopyButton(),
+          ),
+          const SizedBox(height: 16),
+
+          // 步骤 3
+          _StepCard(
+            stepNum: '3',
+            title: '发送绑定指令给 OpenClaw',
+            content: '将 Token 发送给 OpenClaw，让它自动完成实例注册和绑定。',
+            icon: Icons.send,
+            child: _OpenClawPromptCard(),
+          ),
+          const SizedBox(height: 24),
+
+          // 提示
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '绑定完成后，实例将自动出现在虾厂列表中',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 手动添加包装器
+class _ManualAddWrapper extends StatelessWidget {
+  final VoidCallback onComplete;
+
+  const _ManualAddWrapper({required this.onComplete});
+
+  @override
+  Widget build(BuildContext context) {
+    return AddInstancePage(
+      onInstanceAdded: () {
+        context.read<InstanceProvider>().loadInstances();
+        onComplete();
+      },
+    );
+  }
+}
+
+class _StepCard extends StatelessWidget {
+  final String stepNum;
+  final String title;
+  final String content;
+  final IconData icon;
+  final Widget? child;
+
+  const _StepCard({
+    required this.stepNum,
+    required this.title,
+    required this.content,
+    required this.icon,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    stepNum,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          if (child != null) ...[
+            const SizedBox(height: 16),
+            child!,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TokenCopyButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        return FutureBuilder<String?>(
+          future: authProvider.getRelayToken(),
+          builder: (context, snapshot) {
+            final token = snapshot.data;
+            if (token == null || token.isEmpty) {
+              return OutlinedButton.icon(
+                onPressed: () async {
+                  final newToken = await authProvider.regenerateRelayToken();
+                  if (context.mounted && newToken != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Token 已生成')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('生成 Token'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              );
+            }
+            return OutlinedButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: token));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Token 已复制到剪贴板')),
+                );
+              },
+              icon: const Icon(Icons.copy, size: 18),
+              label: const Text('复制 Token'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _OpenClawPromptCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        return FutureBuilder<String?>(
+          future: authProvider.getRelayToken(),
+          builder: (context, snapshot) {
+            final token = snapshot.data ?? '[YOUR_TOKEN]';
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '发送以下指令给 OpenClaw：',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SelectableText(
+                      '绑定 Pebble Relay 实例，Token: $token',
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: '绑定 Pebble Relay 实例，Token: $token'));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('指令已复制')),
+                      );
+                    },
+                    icon: const Icon(Icons.copy, size: 16),
+                    label: const Text('复制指令'),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
