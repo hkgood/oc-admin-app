@@ -56,6 +56,24 @@ class RelayApiDataSource {
     return results;
   }
 
+  // Auto-discover all OpenClaw instances for the user (via relay_token)
+  Future<List<Map<String, dynamic>>> discoverInstances(String relayToken) async {
+    try {
+      final resp = await http.get(
+        Uri.parse('$_relayBase/api/v1/oc/instances'),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Token': relayToken,
+        },
+      ).timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        return List<Map<String, dynamic>>.from(data['instances'] ?? []);
+      }
+    } catch (_) {}
+    return [];
+  }
+
   // Get process list from relay for an instance
   Future<List<ProcessInfoModel>> getInstanceProcesses(String instanceId) async {
     try {

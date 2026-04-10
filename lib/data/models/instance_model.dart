@@ -38,6 +38,25 @@ class InstanceModel extends Instance {
     );
   }
 
+  /// Create InstanceModel from pebble-relay /api/v1/oc/instances response
+  factory InstanceModel.fromDiscoveredJson(Map<String, dynamic> json) {
+    return InstanceModel(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      instanceId: json['id'] ?? '', // pebble-relay uses PocketBase record id as instance_id
+      instanceToken: '', // not available in discovery response
+      isOnline: json['ok'] ?? false,
+      cpuUsage: (json['cpu'] ?? 0).toDouble(),
+      memoryUsage: (json['memory'] ?? 0).toDouble(),
+      uptimeSeconds: json['uptime'] ?? 0,
+      lastSeen: json['lastUpdate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch((json['lastUpdate'] as int) * 1000)
+          : null,
+      processes: [],
+      createdAt: DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

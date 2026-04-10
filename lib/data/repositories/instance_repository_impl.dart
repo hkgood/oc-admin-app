@@ -12,7 +12,28 @@ class InstanceRepositoryImpl implements InstanceRepository {
 
   @override
   Future<List<Instance>> getInstances() async {
-    return _pbDataSource.getInstances();
+    final pocketbaseInstances = await _pbDataSource.getInstances();
+
+    // Auto-discover watch-claw registered instances via pebble-relay
+    try {
+      final relayToken = await _pbDataSource.getRelayToken();
+      if (relayToken != null && relayToken.isNotEmpty) {
+        final discovered = await _relayDataSource.discoverInstances(relayToken);
+        if (discovered.isNotEmpty) {
+          final existingIds = {for (var i in pocketbaseInstances) i.id};
+          for (final d in discovered) {
+            final id = d['id'] as String;
+            if (!existingIds.contains(id)) {
+              pocketbaseInstances.add(InstanceModel.fromDiscoveredJson(d));
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // Ignore discovery errors - fall back to PocketBase instances only
+    }
+
+    return pocketbaseInstances;
   }
 
   @override
