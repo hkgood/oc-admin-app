@@ -91,10 +91,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Show new version
+      - name: Read version
         run: |
-          grep "^version:" pubspec.yaml
-          echo "VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//')" >> $GITHUB_ENV
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "APK_NAME=oc-admin-app-${VERSION}.apk" >> $GITHUB_ENV
+          echo "APK_PATH=build/app/outputs/flutter-apk/oc-admin-app-${VERSION}.apk" >> $GITHUB_ENV
+          echo "VERSION=$VERSION"
 
       - name: Install dependencies
         run: |
@@ -104,24 +107,23 @@ jobs:
         run: |
           flutter build apk --release
 
-      - name: Rename APK with version
+      - name: Rename APK
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//')
-          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/oc-admin-app-${VERSION}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$APK_PATH"
+          echo "Renamed to $APK_NAME"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: oc-admin-app-${VERSION}.apk
-          path: build/app/outputs/flutter-apk/oc-admin-app-${VERSION}.apk
+          name: ${{ env.APK_NAME }}
+          path: ${{ env.APK_PATH }}
 
       - name: Upload to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//')
+          VERSION="${{ env.VERSION }}"
           MAIN_VERSION=$(echo "$VERSION" | cut -d'+' -f1)
           TAG_NAME="v${MAIN_VERSION}"
-          APK_PATH="build/app/outputs/flutter-apk/oc-admin-app-${VERSION}.apk"
-          echo "Uploading ${APK_PATH} to release ${TAG_NAME}"
-          gh release upload "${TAG_NAME}" "${APK_PATH}" --repo hkgood/oc-admin-app || echo "Release upload failed"
+          echo "Uploading ${{ env.APK_PATH }} to release ${TAG_NAME}"
+          gh release upload "${TAG_NAME}" "${{ env.APK_PATH }}" --repo hkgood/oc-admin-app || echo "Release upload failed"
