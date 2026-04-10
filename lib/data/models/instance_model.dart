@@ -13,6 +13,16 @@ class InstanceModel extends Instance {
     super.lastSeen,
     super.processes,
     required super.createdAt,
+    super.version,
+    super.currentModel,
+    super.currentAgent,
+    super.sessionCount,
+    super.channelCount,
+    super.nodeCount,
+    super.onlineChannels,
+    super.totalTokenUsage,
+    super.thinking,
+    super.lastMessageAgo,
   });
 
   factory InstanceModel.fromJson(Map<String, dynamic> json) {
@@ -35,6 +45,19 @@ class InstanceModel extends Instance {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
+      version: json['version'] ?? '',
+      currentModel: json['currentModel'] ?? '',
+      currentAgent: json['currentAgent'] ?? '',
+      sessionCount: json['sessionCount'] ?? 0,
+      channelCount: json['channelCount'] ?? 0,
+      nodeCount: json['nodeCount'] ?? 0,
+      onlineChannels: (json['onlineChannels'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      totalTokenUsage: json['totalTokenUsage'] ?? 0,
+      thinking: json['thinking'] ?? false,
+      lastMessageAgo: json['lastMessageAgo'] ?? 0,
     );
   }
 
@@ -43,8 +66,8 @@ class InstanceModel extends Instance {
     return InstanceModel(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
-      instanceId: json['id'] ?? '', // pebble-relay uses PocketBase record id as instance_id
-      instanceToken: '', // not available in discovery response
+      instanceId: json['id'] ?? '',
+      instanceToken: '',
       isOnline: json['ok'] ?? false,
       cpuUsage: (json['cpu'] ?? 0).toDouble(),
       memoryUsage: (json['memory'] ?? 0).toDouble(),
@@ -54,6 +77,19 @@ class InstanceModel extends Instance {
           : null,
       processes: [],
       createdAt: DateTime.now(),
+      version: json['version'] ?? '',
+      currentModel: json['currentModel'] ?? '',
+      currentAgent: json['currentAgent'] ?? '',
+      sessionCount: json['sessionCount'] ?? 0,
+      channelCount: json['channelCount'] ?? 0,
+      nodeCount: json['nodeCount'] ?? 0,
+      onlineChannels: (json['onlineChannels'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      totalTokenUsage: json['totalTokenUsage'] ?? 0,
+      thinking: json['thinking'] ?? false,
+      lastMessageAgo: json['lastMessageAgo'] ?? 0,
     );
   }
 
@@ -69,6 +105,16 @@ class InstanceModel extends Instance {
       'uptime_seconds': uptimeSeconds,
       'last_seen': lastSeen?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
+      'version': version,
+      'currentModel': currentModel,
+      'currentAgent': currentAgent,
+      'sessionCount': sessionCount,
+      'channelCount': channelCount,
+      'nodeCount': nodeCount,
+      'onlineChannels': onlineChannels,
+      'totalTokenUsage': totalTokenUsage,
+      'thinking': thinking,
+      'lastMessageAgo': lastMessageAgo,
     };
   }
 

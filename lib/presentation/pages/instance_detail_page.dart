@@ -23,7 +23,7 @@ class _InstanceDetailPageState extends State<InstanceDetailPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadProcesses();
   }
 
@@ -41,6 +41,8 @@ class _InstanceDetailPageState extends State<InstanceDetailPage>
       if (mounted && instance != null) {
         setState(() => _processes = instance.processes);
       }
+    } catch (_) {
+      // ignore
     } finally {
       if (mounted) setState(() => _loadingProcesses = false);
     }
@@ -66,7 +68,7 @@ class _InstanceDetailPageState extends State<InstanceDetailPage>
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
                 SliverAppBar(
-                  expandedHeight: 200,
+                  expandedHeight: 220,
                   pinned: true,
                   backgroundColor: Theme.of(context).colorScheme.surface,
                   surfaceTintColor: Colors.transparent,
@@ -77,7 +79,7 @@ class _InstanceDetailPageState extends State<InstanceDetailPage>
                     centerTitle: true,
                     title: Text(
                       instance.name,
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 15),
                     ),
                     background: _InstanceHeader(instance: instance),
                   ),
@@ -88,9 +90,10 @@ class _InstanceDetailPageState extends State<InstanceDetailPage>
                     TabBar(
                       controller: _tabController,
                       tabs: const [
-                        Tab(text: '状态'),
-                        Tab(text: '进程'),
-                        Tab(text: '信息'),
+                        Tab(text: '🔋 系统'),
+                        Tab(text: '🤖 运行'),
+                        Tab(text: '📋 进程'),
+                        Tab(text: 'ℹ️ 实例'),
                       ],
                     ),
                   ),
@@ -100,7 +103,8 @@ class _InstanceDetailPageState extends State<InstanceDetailPage>
             body: TabBarView(
               controller: _tabController,
               children: [
-                _StatusTab(instance: instance),
+                _SystemTab(instance: instance),
+                _RuntimeTab(instance: instance),
                 _ProcessTab(
                   processes: _processes,
                   loading: _loadingProcesses,
@@ -115,6 +119,8 @@ class _InstanceDetailPageState extends State<InstanceDetailPage>
     );
   }
 }
+
+// ─── Header ────────────────────────────────────────────────────────────────
 
 class _InstanceHeader extends StatelessWidget {
   final Instance instance;
@@ -138,17 +144,18 @@ class _InstanceHeader extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 48, 20, 48),
+          padding: const EdgeInsets.fromLTRB(20, 48, 20, 56),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Status row
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _StatusBadge(isOnline: instance.isOnline),
+                  _StatusBadge(isOnline: instance.isOnline, thinking: instance.thinking),
                   const SizedBox(width: 8),
                   Text(
-                    instance.isOnline ? '在线' : '离线',
+                    _statusText(instance),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -157,21 +164,28 @@ class _InstanceHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              // CPU + Memory + Uptime
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _HeaderMetric(
+                    icon: Icons.memory,
                     label: 'CPU',
                     value: '${instance.cpuUsage.toStringAsFixed(1)}%',
+                    color: _cpuColor(instance.cpuUsage),
                   ),
                   _HeaderMetric(
+                    icon: Icons.storage,
                     label: '内存',
                     value: '${instance.memoryUsage.toStringAsFixed(1)}%',
+                    color: _memoryColor(instance.memoryUsage),
                   ),
                   _HeaderMetric(
+                    icon: Icons.timer,
                     label: '运行时长',
                     value: instance.uptimeFormatted,
+                    color: Colors.white70,
                   ),
                 ],
               ),
@@ -181,32 +195,59 @@ class _InstanceHeader extends StatelessWidget {
       ),
     );
   }
+
+  String _statusText(Instance i) {
+    if (!i.isOnline) return '离线';
+    if (i.thinking) return '思考中…';
+    return '在线';
+  }
+
+  Color _cpuColor(double v) {
+    if (v < 50) return Colors.greenAccent;
+    if (v < 80) return Colors.orangeAccent;
+    return Colors.redAccent;
+  }
+
+  Color _memoryColor(double v) {
+    if (v < 60) return Colors.lightBlueAccent;
+    if (v < 85) return Colors.orangeAccent;
+    return Colors.redAccent;
+  }
 }
 
 class _HeaderMetric extends StatelessWidget {
+  final IconData icon;
   final String label;
   final String value;
+  final Color color;
 
-  const _HeaderMetric({required this.label, required this.value});
+  const _HeaderMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
+          style: TextStyle(
+            color: color,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           label,
           style: TextStyle(
             color: Colors.white.withAlpha(180),
-            fontSize: 12,
+            fontSize: 11,
           ),
         ),
       ],
@@ -216,83 +257,97 @@ class _HeaderMetric extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final bool isOnline;
+  final bool thinking;
 
-  const _StatusBadge({required this.isOnline});
+  const _StatusBadge({required this.isOnline, required this.thinking});
 
   @override
   Widget build(BuildContext context) {
+    Color color;
+    if (!isOnline) {
+      color = Colors.grey;
+    } else if (thinking) {
+      color = Colors.orangeAccent;
+    } else {
+      color = Colors.greenAccent;
+    }
+
     return Container(
       width: 12,
       height: 12,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isOnline ? Colors.greenAccent : Colors.grey,
+        color: color,
         boxShadow: isOnline
-            ? [BoxShadow(color: Colors.greenAccent.withAlpha(150), blurRadius: 8)]
+            ? [BoxShadow(color: color.withAlpha(180), blurRadius: 8)]
             : null,
       ),
     );
   }
 }
 
-class _StatusTab extends StatelessWidget {
+// ─── Tab 1: System ───────────────────────────────────────────────────────────
+
+class _SystemTab extends StatelessWidget {
   final Instance instance;
 
-  const _StatusTab({required this.instance});
+  const _SystemTab({required this.instance});
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // CPU & Memory gauges
+        // CPU + Memory gauges
         Row(
           children: [
-            Expanded(
-              child: _GaugeCard(
-                label: 'CPU 使用率',
-                value: instance.cpuUsage,
-                color: _cpuColor(instance.cpuUsage),
-              ),
-            ),
+            Expanded(child: _GaugeCard(
+              label: 'CPU',
+              value: instance.cpuUsage,
+              icon: Icons.memory,
+              color: _cpuColor(instance.cpuUsage),
+              suffix: '%',
+            )),
             const SizedBox(width: 12),
-            Expanded(
-              child: _GaugeCard(
-                label: '内存使用率',
-                value: instance.memoryUsage,
-                color: _memoryColor(instance.memoryUsage),
-              ),
-            ),
+            Expanded(child: _GaugeCard(
+              label: '内存',
+              value: instance.memoryUsage,
+              icon: Icons.storage,
+              color: _memoryColor(instance.memoryUsage),
+              suffix: '%',
+            )),
           ],
         ),
         const SizedBox(height: 16),
 
-        // Uptime card
+        // System info card
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '运行信息',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 16),
+                _SectionTitle(icon: Icons.widgets, title: '系统信息'),
+                const SizedBox(height: 12),
                 _InfoRow(label: '运行时长', value: instance.uptimeFormatted),
-                const Divider(),
+                const Divider(height: 1),
                 _InfoRow(
                   label: '最后活跃',
                   value: instance.lastSeen != null
                       ? DateFormat('yyyy-MM-dd HH:mm:ss').format(instance.lastSeen!)
                       : '未知',
                 ),
-                const Divider(),
+                const Divider(height: 1),
                 _InfoRow(
-                  label: '在线状态',
-                  value: instance.isOnline ? '🟢 在线' : '⚪ 离线',
+                  label: '最后消息',
+                  value: instance.lastMessageAgo > 0
+                      ? '${instance.lastMessageAgoFormatted} 前'
+                      : '无',
+                ),
+                const Divider(height: 1),
+                _InfoRow(
+                  label: 'OpenClaw 版本',
+                  value: instance.version.isNotEmpty ? instance.version : '未知',
                 ),
               ],
             ),
@@ -300,23 +355,36 @@ class _StatusTab extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // Mini charts
+        // Resource mini chart (visual only, since we don't have history)
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '资源趋势',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
+                _SectionTitle(icon: Icons.show_chart, title: '资源使用'),
                 const SizedBox(height: 16),
                 SizedBox(
-                  height: 150,
-                  child: _MiniLineChart(cpu: instance.cpuUsage, memory: instance.memoryUsage),
+                  height: 120,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _MiniBar(
+                          label: 'CPU',
+                          value: instance.cpuUsage / 100,
+                          color: _cpuColor(instance.cpuUsage),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _MiniBar(
+                          label: '内存',
+                          value: instance.memoryUsage / 100,
+                          color: _memoryColor(instance.memoryUsage),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -342,12 +410,16 @@ class _StatusTab extends StatelessWidget {
 class _GaugeCard extends StatelessWidget {
   final String label;
   final double value;
+  final IconData icon;
   final Color color;
+  final String suffix;
 
   const _GaugeCard({
     required this.label,
     required this.value,
+    required this.icon,
     required this.color,
+    required this.suffix,
   });
 
   @override
@@ -357,33 +429,43 @@ class _GaugeCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 4),
+                Text(label, style: Theme.of(context).textTheme.bodySmall),
+              ],
             ),
             const SizedBox(height: 12),
             SizedBox(
-              width: 100,
-              height: 100,
+              width: 90,
+              height: 90,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    width: 100,
-                    height: 100,
+                    width: 90,
+                    height: 90,
                     child: CircularProgressIndicator(
                       value: value / 100,
                       strokeWidth: 8,
-                      backgroundColor: color.withAlpha(40),
+                      backgroundColor: color.withAlpha(30),
                       valueColor: AlwaysStoppedAnimation(color),
                     ),
                   ),
-                  Text(
-                    '${value.toStringAsFixed(1)}%',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${value.toStringAsFixed(1)}$suffix',
+                        style: TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: color,
                         ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -391,6 +473,274 @@ class _GaugeCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─── Tab 2: Runtime ─────────────────────────────────────────────────────────
+
+class _RuntimeTab extends StatelessWidget {
+  final Instance instance;
+
+  const _RuntimeTab({required this.instance});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Current state
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionTitle(icon: Icons.smart_toy, title: '当前状态'),
+                const SizedBox(height: 12),
+                _InfoRow(label: '当前模型', value: instance.currentModel.isNotEmpty ? instance.currentModel : '未设置'),
+                const Divider(height: 1),
+                _InfoRow(label: '当前 Agent', value: instance.currentAgent.isNotEmpty ? instance.currentAgent : '未设置'),
+                const Divider(height: 1),
+                _InfoRow(
+                  label: '活跃频道',
+                  value: instance.onlineChannels.isNotEmpty
+                      ? instance.onlineChannels.join(', ')
+                      : '无',
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Statistics
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionTitle(icon: Icons.bar_chart, title: '统计数据'),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: _StatCard(icon: Icons.chat_bubble, label: '会话', value: '${instance.sessionCount}', color: Colors.blue)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _StatCard(icon: Icons.cable, label: '频道', value: '${instance.channelCount}', color: Colors.purple)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _StatCard(icon: Icons.device_hub, label: '节点', value: '${instance.nodeCount}', color: Colors.teal)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _StatCard(icon: Icons.token, label: '累计 Token', value: instance.tokenUsageFormatted, color: Colors.amber, wide: true),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Thinking indicator
+        if (instance.thinking)
+          Card(
+            color: Colors.orange.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(Colors.orange),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AI 正在思考…',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade800,
+                          ),
+                        ),
+                        Text(
+                          '模型: ${instance.currentModel}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final bool wide;
+
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    this.wide = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (wide) {
+      return Card(
+        color: color.withAlpha(20),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: TextStyle(fontSize: 12, color: color)),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      color: color.withAlpha(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Tab 3: Info ─────────────────────────────────────────────────────────────
+
+class _InfoTab extends StatelessWidget {
+  final Instance instance;
+
+  const _InfoTab({required this.instance});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionTitle(icon: Icons.info_outline, title: '基本信息'),
+                const SizedBox(height: 12),
+                _DetailRow(label: '名称', value: instance.name),
+                const Divider(height: 1),
+                _DetailRow(label: 'Instance ID', value: instance.instanceId),
+                const Divider(height: 1),
+                _DetailRow(
+                  label: '创建时间',
+                  value: DateFormat('yyyy-MM-dd HH:mm').format(instance.createdAt),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionTitle(icon: Icons.cloud, title: 'PocketBase 信息'),
+                const SizedBox(height: 12),
+                _DetailRow(label: 'Record ID', value: instance.id),
+                const Divider(height: 1),
+                _DetailRow(label: '在线状态', value: instance.isOnline ? '🟢 在线' : '⚪ 离线'),
+                const Divider(height: 1),
+                _DetailRow(label: '注册频道', value: instance.onlineChannels.isNotEmpty ? instance.onlineChannels.join(', ') : '无'),
+                if (instance.version.isNotEmpty) ...[
+                  const Divider(height: 1),
+                  _DetailRow(label: 'OpenClaw 版本', value: instance.version),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Shared Components ────────────────────────────────────────────────────────
+
+class _SectionTitle extends StatelessWidget {
+  final IconData icon;
+  final String title;
+
+  const _SectionTitle({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      ],
     );
   }
 }
@@ -404,7 +754,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -414,11 +764,15 @@ class _InfoRow extends StatelessWidget {
                   color: Theme.of(context).colorScheme.outline,
                 ),
           ),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+          Flexible(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -426,44 +780,34 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _MiniLineChart extends StatelessWidget {
-  final double cpu;
-  final double memory;
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
 
-  const _MiniLineChart({required this.cpu, required this.memory});
+  const _DetailRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return LineChart(
-      LineChartData(
-        gridData: const FlGridData(show: false),
-        titlesData: const FlTitlesData(show: false),
-        borderData: FlBorderData(show: false),
-        minY: 0,
-        maxY: 100,
-        lineBarsData: [
-          LineChartBarData(
-            spots: [FlSpot(0, cpu * 0.8), FlSpot(1, cpu), FlSpot(2, cpu * 1.05)],
-            isCurved: true,
-            color: Colors.green,
-            barWidth: 3,
-            isStrokeCapRound: true,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: Colors.green.withAlpha(30),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
             ),
           ),
-          LineChartBarData(
-            spots: [FlSpot(0, memory * 0.9), FlSpot(1, memory), FlSpot(2, memory * 1.02)],
-            isCurved: true,
-            color: Colors.blue,
-            barWidth: 3,
-            isStrokeCapRound: true,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: Colors.blue.withAlpha(30),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ),
         ],
@@ -471,6 +815,51 @@ class _MiniLineChart extends StatelessWidget {
     );
   }
 }
+
+class _MiniBar extends StatelessWidget {
+  final String label;
+  final double value;
+  final Color color;
+
+  const _MiniBar({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: FractionallySizedBox(
+              heightFactor: value.clamp(0.02, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+        ),
+        Text(
+          '${(value * 100).toStringAsFixed(1)}%',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Process Tab (kept but uses instance.processes now) ─────────────────────
 
 class _ProcessTab extends StatelessWidget {
   final List<ProcessInfo> processes;
@@ -505,6 +894,14 @@ class _ProcessTab extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Theme.of(context).colorScheme.outline,
                   ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '进程信息由 watch-claw 插件定期上报',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.outline,
+              ),
             ),
           ],
         ),
@@ -567,81 +964,7 @@ class _ProcessTab extends StatelessWidget {
   }
 }
 
-class _InfoTab extends StatelessWidget {
-  final Instance instance;
-
-  const _InfoTab({required this.instance});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '基本信息',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                _DetailRow(label: '名称', value: instance.name),
-                const Divider(),
-                _DetailRow(label: 'Instance ID', value: instance.instanceId),
-                const Divider(),
-                _DetailRow(
-                  label: '创建时间',
-                  value: DateFormat('yyyy-MM-dd HH:mm').format(instance.createdAt),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _DetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// ─── Tab Bar Delegate ────────────────────────────────────────────────────────
 
 class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
